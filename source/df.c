@@ -1,6 +1,6 @@
 #include "../includes/df.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	/*
 	todo:
@@ -11,11 +11,16 @@ int main(void)
 	image_struct *base_image = malloc(sizeof(image_struct));
 	image_struct *comparison_image = malloc(sizeof(image_struct));
 
-	base_image->location = "tests/a.png";
-	comparison_image->location = "tests/b.png"; // todo: pass as argument
+	if (!checkArgs(argc)) {
+		// add error handler?
+		return -1;
+	}
 
-	base_image->image_data = initializeImage(base_image, 0);
-	comparison_image->image_data = initializeImage(comparison_image, 0);
+	// get base image and comparison folder as input parameters
+	strncpy(base_image->location, argv[1], FILENAME_MAX);
+	strncpy(comparison_image->location, argv[2], FILENAME_MAX);
+
+	initializeImages(base_image, comparison_image);
 
 	// todo: check if images are loaded sucessfully
 
@@ -49,9 +54,58 @@ int main(void)
 	return 0;
 }
 
-unsigned char *initializeImage(image_struct *image, int set_components_value)
+bool checkArgs(int argc)
 {
-	return stbi_load(image->location, &image->width, &image->height, &image->components_per_pixel, set_components_value);
+	if (argc != 3) {
+		printf("please follow the following format\ndf [source_image] [directory_to_test] -[args]\n");
+		return false;
+	}
+
+	return true;
+}
+
+void initializeImages(image_struct *base, image_struct *comparison)
+{
+	image_struct *iterator = comparison;
+	base->next_image = NULL;
+	comparison->next_image = NULL;
+
+	char comparison_directory_name[FILENAME_MAX];
+	strncpy(comparison_directory_name, comparison->location, FILENAME_MAX);
+
+	// loop through all the comparison images
+	DIR *directory_pointer;
+	struct dirent *directory_entry;
+	char full_path[FILENAME_MAX * 2];
+
+	directory_pointer = opendir(comparison_directory_name);
+	if (directory_pointer != NULL) {
+		while ((directory_entry = readdir(directory_pointer))) {
+			// skip hidden files as well as "." and ".."
+			if (!strncmp(directory_entry->d_name, ".", 1)) {
+				continue;
+			}
+
+			image_struct *new_image = (image_struct *) malloc(sizeof(*iterator));
+			memset(full_path, 0, FILENAME_MAX * 2); // make sure to reset fullpath at each iteration
+			
+			// fullpath = directory_name + current_filename
+			strncpy(full_path, comparison_directory_name, strlen(comparison_directory_name));
+			strcat(full_path, directory_entry->d_name);
+
+			strncpy(new_image->location, full_path, FILENAME_MAX);
+			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->components_per_pixel, 0);
+
+			iterator->next_image = new_image;
+			iterator = iterator->next_image;
+		}
+		closedir(directory_pointer);
+	}
+	else {
+		perror("couldn't open the directory");
+		return;
+	}
+	base->image_data = stbi_load(base->location, &base->width, &base->height, &base->components_per_pixel, 0);
 }
 
 void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *comparison)
