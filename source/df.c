@@ -17,8 +17,8 @@ int main(int argc, char *argv[])
 	base_image->number_of_pixels = base_image->width * base_image->height;
 	comparison_image->number_of_pixels = comparison_image->width * comparison_image->height;
 
-	base_image->rgb_array = calloc(1, sizeof(long) * base_image->components_per_pixel);
-	comparison_image->rgb_array = calloc(1, sizeof(long) * comparison_image->components_per_pixel);
+	base_image->components_array = calloc(1, sizeof(long) * base_image->components_per_pixel);
+	comparison_image->components_array = calloc(1, sizeof(long) * comparison_image->components_per_pixel);
 
 	printf("image a\nw:%d, h:%d, c:%d\n", base_image->width, base_image->height, base_image->components_per_pixel);
 	printf("\nimage b\nw:%d, h:%d, c:%d\n\n", comparison_image->width, comparison_image->height, comparison_image->components_per_pixel);
@@ -89,8 +89,8 @@ void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *compariso
 		if (base->components_per_pixel == comparison->components_per_pixel) {
 			for (int i = 0; i < (comparison->number_of_pixels * comparison->components_per_pixel); i++) {
 				// there are only components_per_pixel_base elements in the rgb arrays
-				base->rgb_array[i % base->components_per_pixel] += base->image_data[i];
-				comparison->rgb_array[i % comparison->components_per_pixel] += comparison->image_data[i];
+				base->components_array[i % base->components_per_pixel] += base->image_data[i];
+				comparison->components_array[i % comparison->components_per_pixel] += comparison->image_data[i];
 			}
 		}
 		else {
@@ -101,8 +101,8 @@ void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *compariso
 		printf("image dimensions are different\n\n");
 	}
 	
-	printf("number of reds [base]: %ld, greens: %ld, blues: %ld\n", base->rgb_array[0], base->rgb_array[1], base->rgb_array[2]);
-	printf("number of reds [comparison]: %ld, greens: %ld, blues: %ld\n\n", comparison->rgb_array[0], comparison->rgb_array[1], comparison->rgb_array[2]);
+	printf("number of reds [base]: %ld, greens: %ld, blues: %ld\n", base->components_array[0], base->components_array[1], base->components_array[2]);
+	printf("number of reds [comparison]: %ld, greens: %ld, blues: %ld\n\n", comparison->components_array[0], comparison->components_array[1], comparison->components_array[2]);
 }
 
 void rgbComponentMethodCalculatePercentages(image_struct *base, image_struct *comparison)
@@ -110,8 +110,8 @@ void rgbComponentMethodCalculatePercentages(image_struct *base, image_struct *co
 	double denominator = comparison->width * comparison->height * comparison->components_per_pixel * COMPONENT_MAX_VALUE;
 
 	for (int i = 0; i < comparison->components_per_pixel; i++) {
-		double base_calculated_value = (base->rgb_array[i] / denominator) * 100;
-		double comparison_calculated_value = (comparison->rgb_array[i] / denominator) * 100;
+		double base_calculated_value = (base->components_array[i] / denominator) * 100;
+		double comparison_calculated_value = (comparison->components_array[i] / denominator) * 100;
 
 		printf("comonent %d: ", i);
 		printf("[base] = %f  ", base_calculated_value);
