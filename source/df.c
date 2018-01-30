@@ -2,27 +2,17 @@
 
 int main(int argc, char *argv[])
 {
-	/*
-	todo:
-		methods: checksum, rgb component array, tbc.
-		add support for multiple threads
-	*/
-
 	image_struct *base_image = malloc(sizeof(image_struct));
 	image_struct *comparison_image = malloc(sizeof(image_struct));
 
-	if (!checkArgs(argc)) {
-		// add error handler?
+	if (!verifyParams(argc)) {
 		return -1;
 	}
 
-	// get base image and comparison folder as input parameters
 	strncpy(base_image->location, argv[1], FILENAME_MAX);
 	strncpy(comparison_image->location, argv[2], FILENAME_MAX);
 
 	initializeImages(base_image, comparison_image);
-
-	// todo: check if images are loaded sucessfully
 
 	base_image->number_of_pixels = base_image->width * base_image->height;
 	comparison_image->number_of_pixels = comparison_image->width * comparison_image->height;
@@ -36,25 +26,10 @@ int main(int argc, char *argv[])
 	rgbComponentMethodStoreInArrays(base_image, comparison_image);
 	rgbComponentMethodCalculatePercentages(base_image, comparison_image);
 
-	// todo: implement the method presented in pseudocode below
-	// if (*(base_image + i) != *(comparison_image + i) || 
-	// 	*(base_image + i + 1) != *(comparison_image + i + 1) || 
-	// 	*(base_image + i + 2) != *(comparison_image + i + 2)) {
-	// 	printf("not identical\n");
-	// 	break;
-	// }
-
-	// if (checkPercentages() is under threshold) {
-	// 	printf("\nthey seem identical\n");
-	// }
-	// else {
-	// 	printf("\nnot identical\n");
-	// }
-
 	return 0;
 }
 
-bool checkArgs(int argc)
+bool verifyParams(int argc)
 {
 	if (argc != 3) {
 		printf("please follow the following format\ndf [source_image] [directory_to_test] -[args]\n");
@@ -81,7 +56,7 @@ void initializeImages(image_struct *base, image_struct *comparison)
 	directory_pointer = opendir(comparison_directory_name);
 	if (directory_pointer != NULL) {
 		while ((directory_entry = readdir(directory_pointer))) {
-			// skip hidden files as well as "." and ".."
+			// skip hidden files
 			if (!strncmp(directory_entry->d_name, ".", 1)) {
 				continue;
 			}
@@ -110,8 +85,6 @@ void initializeImages(image_struct *base, image_struct *comparison)
 
 void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *comparison)
 {
-	// skip adjacent pixels or only get 1 out of every 10 pixels or something, requires testing for (configurable) sweet spot
-	// rgbComponentMethodBuildShrinkPixelsToCheck();
 	if (base->width == comparison->width && base->height == comparison->height) {
 		if (base->components_per_pixel == comparison->components_per_pixel) {
 			for (int i = 0; i < (comparison->number_of_pixels * comparison->components_per_pixel); i++) {
@@ -122,12 +95,10 @@ void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *compariso
 		}
 		else {
 			printf("images do not have equal components\n");
-			// todo: handle this
 		}
 	}
 	else {
 		printf("image dimensions are different\n\n");
-		// todo: handle this
 	}
 	
 	printf("number of reds [base]: %ld, greens: %ld, blues: %ld\n", base->rgb_array[0], base->rgb_array[1], base->rgb_array[2]);
@@ -135,7 +106,6 @@ void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *compariso
 }
 
 void rgbComponentMethodCalculatePercentages(image_struct *base, image_struct *comparison)
-// void rgbComponentMethodCalculatePercentages(long *base_rgb_array, long *comparison_rgb_array, int width_comparison, int height_comparison, int components_per_pixel_comparison)
 {
 	double denominator = comparison->width * comparison->height * comparison->components_per_pixel * COMPONENT_MAX_VALUE;
 

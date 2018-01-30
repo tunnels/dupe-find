@@ -6,7 +6,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-// each component in each pixel will have a value from 0 to COMPONENT_MAX_VALUE
+// each component in each pixel will have a value from 1 to COMPONENT_MAX_VALUE
 #define COMPONENT_MAX_VALUE 256.0
 
 typedef struct image_struct_t {
