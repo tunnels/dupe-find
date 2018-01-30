@@ -14,17 +14,13 @@ int main(int argc, char *argv[])
 
 	initializeImages(base_image, comparison_image);
 
-	base_image->number_of_pixels = base_image->width * base_image->height;
-	comparison_image->number_of_pixels = comparison_image->width * comparison_image->height;
-
-	base_image->components_array = calloc(1, sizeof(long) * base_image->components_per_pixel);
-	comparison_image->components_array = calloc(1, sizeof(long) * comparison_image->components_per_pixel);
-
-	printf("image a\nw:%d, h:%d, c:%d\n", base_image->width, base_image->height, base_image->components_per_pixel);
-	printf("\nimage b\nw:%d, h:%d, c:%d\n\n", comparison_image->width, comparison_image->height, comparison_image->components_per_pixel);
-
+	image_struct *iterator = comparison_image;
 	rgbComponentMethodStoreInArrays(base_image, comparison_image);
-	rgbComponentMethodCalculatePercentages(base_image, comparison_image);
+	
+	while (iterator->next != NULL) {
+		rgbComponentMethodStoreInArrays(base_image, iterator->next);
+		iterator = iterator->next;
+	}
 
 	return 0;
 }
@@ -32,18 +28,24 @@ int main(int argc, char *argv[])
 bool verifyParams(int argc)
 {
 	if (argc != 3) {
-		printf("please follow the following format\ndf [source_image] [directory_to_test] -[args]\n");
+		printf("please follow the following format\ndf [source_image] [directory_to_test]\n");
 		return false;
 	}
 
 	return true;
 }
 
+void printImageDetails(image_struct *image)
+{
+	printf("\nlocation: %s\nw:%d, h:%d, c:%d\n", image->location, image->width, image->height, image->components_per_pixel);
+}
+
 void initializeImages(image_struct *base, image_struct *comparison)
 {
 	image_struct *iterator = comparison;
-	base->next_image = NULL;
-	comparison->next_image = NULL;
+	base->next = NULL;
+	comparison->next = NULL;
+	image_struct *new_image = NULL;
 
 	char comparison_directory_name[FILENAME_MAX];
 	strncpy(comparison_directory_name, comparison->location, FILENAME_MAX);
@@ -61,7 +63,14 @@ void initializeImages(image_struct *base, image_struct *comparison)
 				continue;
 			}
 
-			image_struct *new_image = (image_struct *) malloc(sizeof(*iterator));
+			// if we're on the first image
+			if (comparison->next == NULL) {
+				new_image = comparison;
+			}
+			else {
+				new_image = (image_struct *) malloc(sizeof(*iterator));
+			}
+
 			memset(full_path, 0, FILENAME_MAX * 2); // make sure to reset fullpath at each iteration
 			
 			// fullpath = directory_name + current_filename
@@ -70,9 +79,11 @@ void initializeImages(image_struct *base, image_struct *comparison)
 
 			strncpy(new_image->location, full_path, FILENAME_MAX);
 			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->components_per_pixel, 0);
+			new_image->components_array = calloc(1, sizeof(long) * new_image->components_per_pixel);
+			new_image->number_of_pixels = new_image->width * new_image->height;
 
-			iterator->next_image = new_image;
-			iterator = iterator->next_image;
+			iterator->next = new_image;
+			iterator = iterator->next;
 		}
 		closedir(directory_pointer);
 	}
@@ -80,7 +91,10 @@ void initializeImages(image_struct *base, image_struct *comparison)
 		perror("couldn't open the directory");
 		return;
 	}
+
 	base->image_data = stbi_load(base->location, &base->width, &base->height, &base->components_per_pixel, 0);
+	base->components_array = calloc(1, sizeof(long) * base->components_per_pixel);
+	base->number_of_pixels = base->width * base->height;
 }
 
 void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *comparison)
@@ -94,11 +108,13 @@ void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *compariso
 			}
 		}
 		else {
-			printf("images do not have equal components\n");
+			printf("[unhandled]: images do not have equal components\n");
+			return;
 		}
 	}
 	else {
-		printf("image dimensions are different\n\n");
+		printf("[unhandled]: image dimensions are different\n");
+		return;
 	}
 	
 	printf("number of reds [base]: %ld, greens: %ld, blues: %ld\n", base->components_array[0], base->components_array[1], base->components_array[2]);

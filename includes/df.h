@@ -17,10 +17,11 @@ typedef struct image_struct_t {
 	int number_of_pixels;
 	int components_per_pixel;
 	long *components_array;
-	struct image_struct_t *next_image;
+	struct image_struct_t *next;
 } image_struct;
 
 bool verifyParams(int argc);
+void printImageDetails(image_struct *image);
 void initializeImages(image_struct *base, image_struct *comparison);
 void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *comparison);
 void rgbComponentMethodCalculatePercentages(image_struct *base, image_struct *comparison);
