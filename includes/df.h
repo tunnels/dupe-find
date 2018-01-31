@@ -23,5 +23,6 @@ typedef struct image_struct_t {
 bool verifyParams(int argc);
 void printImageDetails(image_struct *image);
 void initializeImages(image_struct *base, image_struct *comparison);
-void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *comparison);
-void rgbComponentMethodCalculatePercentages(image_struct *base, image_struct *comparison);
+void componentMethodStoreInArrays(image_struct *base, image_struct *comparison);
+void printComponentArray(image_struct *base);
+void comparePercentageDifferenceBetweenComponentArrays(image_struct *base, image_struct *comparison);

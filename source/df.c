@@ -15,10 +15,11 @@ int main(int argc, char *argv[])
 	initializeImages(base_image, comparison_image);
 
 	image_struct *iterator = comparison_image;
-	rgbComponentMethodStoreInArrays(base_image, comparison_image);
+	componentMethodStoreInArrays(base_image, comparison_image);
+	comparePercentageDifferenceBetweenComponentArrays(base_image, comparison_image);
 	
 	while (iterator->next != NULL) {
-		rgbComponentMethodStoreInArrays(base_image, iterator->next);
+		comparePercentageDifferenceBetweenComponentArrays(base_image, iterator->next);
 		iterator = iterator->next;
 	}
 
@@ -97,7 +98,7 @@ void initializeImages(image_struct *base, image_struct *comparison)
 	base->number_of_pixels = base->width * base->height;
 }
 
-void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *comparison)
+void componentMethodStoreInArrays(image_struct *base, image_struct *comparison)
 {
 	if (base->width == comparison->width && base->height == comparison->height) {
 		if (base->components_per_pixel == comparison->components_per_pixel) {
@@ -116,22 +117,26 @@ void rgbComponentMethodStoreInArrays(image_struct *base, image_struct *compariso
 		printf("[unhandled]: image dimensions are different\n");
 		return;
 	}
-	
-	printf("number of reds [base]: %ld, greens: %ld, blues: %ld\n", base->components_array[0], base->components_array[1], base->components_array[2]);
-	printf("number of reds [comparison]: %ld, greens: %ld, blues: %ld\n\n", comparison->components_array[0], comparison->components_array[1], comparison->components_array[2]);
 }
 
-void rgbComponentMethodCalculatePercentages(image_struct *base, image_struct *comparison)
+void printComponentArray(image_struct *base)
+{
+	for (int i = 0; i < base->components_per_pixel; i++)
+	printf("component %d: %ld\n", i, base->components_array[i]);
+}
+
+void comparePercentageDifferenceBetweenComponentArrays(image_struct *base, image_struct *comparison)
 {
 	double denominator = comparison->width * comparison->height * comparison->components_per_pixel * COMPONENT_MAX_VALUE;
 
+	printf("\ncomparing base: '%s' and comparison: '%s'\n", base->location, comparison->location);
 	for (int i = 0; i < comparison->components_per_pixel; i++) {
 		double base_calculated_value = (base->components_array[i] / denominator) * 100;
 		double comparison_calculated_value = (comparison->components_array[i] / denominator) * 100;
 
-		printf("comonent %d: ", i);
-		printf("[base] = %f  ", base_calculated_value);
-		printf("[comparison] = %f  ", comparison_calculated_value);
+		printf("%d: ", i);
+		printf("[base] = %f ; ", base_calculated_value);
+		printf("[comparison] = %f ; ", comparison_calculated_value);
 		printf("[difference] = %f\n", (comparison_calculated_value - base_calculated_value));
 	}
 }
