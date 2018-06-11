@@ -19,10 +19,12 @@ int main(int argc, char *argv[])
 	comparePercentageDifferenceBetweenComponentArrays(base_image, comparison_image);
 	
 	while (iterator->next != NULL) {
+		componentMethodStoreInArrays(base_image, iterator->next);
 		comparePercentageDifferenceBetweenComponentArrays(base_image, iterator->next);
 		iterator = iterator->next;
 	}
 
+	printf("finished [main]\n");
 	return 0;
 }
 
@@ -33,6 +35,7 @@ bool verifyParams(int argc)
 		return false;
 	}
 
+	printf("finished [verifyParams]\n");
 	return true;
 }
 
@@ -96,6 +99,7 @@ void initializeImages(image_struct *base, image_struct *comparison)
 	base->image_data = stbi_load(base->location, &base->width, &base->height, &base->components_per_pixel, 0);
 	base->components_array = calloc(1, sizeof(long) * base->components_per_pixel);
 	base->number_of_pixels = base->width * base->height;
+	printf("finished [initializeImages]\n");
 }
 
 void componentMethodStoreInArrays(image_struct *base, image_struct *comparison)
@@ -103,6 +107,12 @@ void componentMethodStoreInArrays(image_struct *base, image_struct *comparison)
 	if (base->width == comparison->width && base->height == comparison->height) {
 		if (base->components_per_pixel == comparison->components_per_pixel) {
 			for (int i = 0; i < (comparison->number_of_pixels * comparison->components_per_pixel); i++) {
+
+				// reset this value on recalls; need to restructure to prevent this hack
+				if (i < base->components_per_pixel) {
+					base->components_array[i] = 0;
+				}
+
 				// there are only components_per_pixel_base elements in the rgb arrays
 				base->components_array[i % base->components_per_pixel] += base->image_data[i];
 				comparison->components_array[i % comparison->components_per_pixel] += comparison->image_data[i];
@@ -117,6 +127,7 @@ void componentMethodStoreInArrays(image_struct *base, image_struct *comparison)
 		printf("[unhandled]: image dimensions are different\n");
 		return;
 	}
+	printf("finished [componentMethodStoreInArrays]\n");
 }
 
 void printComponentArray(image_struct *base)
@@ -139,4 +150,5 @@ void comparePercentageDifferenceBetweenComponentArrays(image_struct *base, image
 		printf("[comparison] = %f ; ", comparison_calculated_value);
 		printf("[difference] = %f\n", (comparison_calculated_value - base_calculated_value));
 	}
+	printf("finished [comparePercentageDifferenceBetweenComponentArrays]\n");
 }
