@@ -1,37 +1,42 @@
 #include "../includes/df.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
-	image_struct *base_image = malloc(sizeof(image_struct));
-	image_struct *comparison_image = malloc(sizeof(image_struct));
-
-	if (!verifyParams(argc)) {
+	if (!verifyParams(argc, argv[1])) {
 		return -1;
 	}
 
-	strncpy(base_image->location, argv[1], FILENAME_MAX);
-	strncpy(comparison_image->location, argv[2], FILENAME_MAX);
+	int number_of_images;
+	Image *images[MAX_IMAGES_PER_DIR];
+	initializeImages(&images[0], argv[1], &number_of_images);
 
-	initializeImages(base_image, comparison_image);
+	for (int i = 0; i < number_of_images; i++) {
+		storeComponents(images[i]);
+		// printComponents(images[i]);
+	}
 
-	image_struct *iterator = comparison_image;
-	componentMethodStoreInArrays(base_image, comparison_image);
-	comparePercentageDifferenceBetweenComponentArrays(base_image, comparison_image);
-	
-	while (iterator->next != NULL) {
-		componentMethodStoreInArrays(base_image, iterator->next);
-		comparePercentageDifferenceBetweenComponentArrays(base_image, iterator->next);
-		iterator = iterator->next;
+	for (int i = 0; i < number_of_images; i++) {
+		int k = 0;
+
+		// todo: [performance] ignore duplicate sets; if (image_1, image_2), ignore (image_2, image_1)
+		for (int j = (i + 1) % number_of_images; (k + 1) < number_of_images; (j = (j + 1) % number_of_images, k++)) {
+			compareComponents(images[i], images[j]);
+		}
 	}
 
 	printf("finished [main]\n");
 	return 0;
 }
 
-bool verifyParams(int argc)
+bool verifyParams(int argc, char *source_directory)
 {
-	if (argc != 3) {
-		printf("please follow the following format\ndf [source_image] [directory_to_test]\n");
+	if (argc != 2) {
+		printf("please follow the following format\ndf [source_directory]\n");
+		return false;
+	}
+
+	if (strlen(source_directory) >= FILENAME_MAX) {
+		printf("[error] directory name is too long\n");
 		return false;
 	}
 
@@ -39,27 +44,22 @@ bool verifyParams(int argc)
 	return true;
 }
 
-void printImageDetails(image_struct *image)
+void printImageDetails(Image *image)
 {
 	printf("\nlocation: %s\nw:%d, h:%d, c:%d\n", image->location, image->width, image->height, image->components_per_pixel);
+	printf("finished [printImageDetails]\n");
 }
 
-void initializeImages(image_struct *base, image_struct *comparison)
+void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory, int *number_of_images)
 {
-	image_struct *iterator = comparison;
-	base->next = NULL;
-	comparison->next = NULL;
-	image_struct *new_image = NULL;
+	Image *new_image = NULL;
 
-	char comparison_directory_name[FILENAME_MAX];
-	strncpy(comparison_directory_name, comparison->location, FILENAME_MAX);
-
-	// loop through all the comparison images
+	// loop through all the images
 	DIR *directory_pointer;
 	struct dirent *directory_entry;
-	char full_path[FILENAME_MAX * 2];
+	char image_path[FILENAME_MAX * 2];
 
-	directory_pointer = opendir(comparison_directory_name);
+	directory_pointer = opendir(source_directory);
 	if (directory_pointer != NULL) {
 		while ((directory_entry = readdir(directory_pointer))) {
 			// skip hidden files
@@ -67,88 +67,75 @@ void initializeImages(image_struct *base, image_struct *comparison)
 				continue;
 			}
 
-			// if we're on the first image
-			if (comparison->next == NULL) {
-				new_image = comparison;
-			}
-			else {
-				new_image = (image_struct *) malloc(sizeof(*iterator));
-			}
+			new_image = (Image *) malloc(sizeof(*new_image));
 
-			memset(full_path, 0, FILENAME_MAX * 2); // make sure to reset fullpath at each iteration
-			
-			// fullpath = directory_name + current_filename
-			strncpy(full_path, comparison_directory_name, strlen(comparison_directory_name));
-			strcat(full_path, directory_entry->d_name);
+			// image_path = directory_name + current_filename
+			memset(image_path, 0, FILENAME_MAX * 2);
+			strncpy(image_path, source_directory, strlen(source_directory));
+			strcat(image_path, directory_entry->d_name);
+			strncpy(new_image->location, image_path, FILENAME_MAX * 2);
 
-			strncpy(new_image->location, full_path, FILENAME_MAX);
 			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->components_per_pixel, 0);
-			new_image->components_array = calloc(1, sizeof(long) * new_image->components_per_pixel);
+			new_image->components = calloc(1, sizeof(long) * new_image->components_per_pixel);
 			new_image->number_of_pixels = new_image->width * new_image->height;
 
-			iterator->next = new_image;
-			iterator = iterator->next;
+			if (*number_of_images < MAX_IMAGES_PER_DIR) {
+				images[(*number_of_images)++] = new_image;
+			}
+			else {
+				printf("[ERROR] too many images in directory\n");
+				return;
+			}
 		}
 		closedir(directory_pointer);
 	}
 	else {
-		perror("couldn't open the directory");
-		return;
+		perror("ERROR");
 	}
 
-	base->image_data = stbi_load(base->location, &base->width, &base->height, &base->components_per_pixel, 0);
-	base->components_array = calloc(1, sizeof(long) * base->components_per_pixel);
-	base->number_of_pixels = base->width * base->height;
 	printf("finished [initializeImages]\n");
 }
 
-void componentMethodStoreInArrays(image_struct *base, image_struct *comparison)
+void storeComponents(Image *image)
 {
-	if (base->width == comparison->width && base->height == comparison->height) {
-		if (base->components_per_pixel == comparison->components_per_pixel) {
-			for (int i = 0; i < (comparison->number_of_pixels * comparison->components_per_pixel); i++) {
-
-				// reset this value on recalls; need to restructure to prevent this hack
-				if (i < base->components_per_pixel) {
-					base->components_array[i] = 0;
-				}
-
-				// there are only components_per_pixel_base elements in the rgb arrays
-				base->components_array[i % base->components_per_pixel] += base->image_data[i];
-				comparison->components_array[i % comparison->components_per_pixel] += comparison->image_data[i];
-			}
+	for (int i = 0; i < (image->number_of_pixels * image->components_per_pixel); i++) {
+		// reset this value for each component array entry
+		if (i < image->components_per_pixel) {
+			image->components[i] = 0;
 		}
-		else {
-			printf("[unhandled]: images do not have equal components\n");
-			return;
-		}
+
+		// there are only components_per_pixel_base elements in the rgb arrays
+		image->components[i % image->components_per_pixel] += image->image_data[i];
 	}
-	else {
-		printf("[unhandled]: image dimensions are different\n");
-		return;
-	}
-	printf("finished [componentMethodStoreInArrays]\n");
+
+	printf("finished [storeComponents]\n");
 }
 
-void printComponentArray(image_struct *base)
+void printComponents(Image *image)
 {
-	for (int i = 0; i < base->components_per_pixel; i++)
-	printf("component %d: %ld\n", i, base->components_array[i]);
+	for (int i = 0; i < image->components_per_pixel; i++)
+	printf("component %d: %ld\n", i, image->components[i]);
+	printf("finished [printComponents]\n");
 }
 
-void comparePercentageDifferenceBetweenComponentArrays(image_struct *base, image_struct *comparison)
+void compareComponents(Image *base, Image *comparison)
 {
-	double denominator = comparison->width * comparison->height * comparison->components_per_pixel * COMPONENT_MAX_VALUE;
+	double base_denominator = base->width * base->height * base->components_per_pixel * COMPONENT_MAX_VALUE;
+	double comparison_denominator = comparison->width * comparison->height * comparison->components_per_pixel * COMPONENT_MAX_VALUE;
+	double total_difference = 0;
 
 	printf("\ncomparing base: '%s' and comparison: '%s'\n", base->location, comparison->location);
 	for (int i = 0; i < comparison->components_per_pixel; i++) {
-		double base_calculated_value = (base->components_array[i] / denominator) * 100;
-		double comparison_calculated_value = (comparison->components_array[i] / denominator) * 100;
+		double base_calculated_value = (base->components[i] / base_denominator) * 100;
+		double comparison_calculated_value = (comparison->components[i] / comparison_denominator) * 100;
 
-		printf("%d: ", i);
-		printf("[base] = %f ; ", base_calculated_value);
-		printf("[comparison] = %f ; ", comparison_calculated_value);
-		printf("[difference] = %f\n", (comparison_calculated_value - base_calculated_value));
+		// printf("%d: ", i);
+		// printf("[base] = %f ; ", base_calculated_value);
+		// printf("[comparison] = %f ; ", comparison_calculated_value);
+		total_difference += fabs(comparison_calculated_value - base_calculated_value);
+		// printf("[difference] = %f\n", total_difference);
 	}
-	printf("finished [comparePercentageDifferenceBetweenComponentArrays]\n");
+	printf("[Total Diffirence] = %f\n", total_difference);
+	// printf("comparing %s and %s\n", base->location, comparison->location);
+	printf("finished [compareComponents]\n");
 }
