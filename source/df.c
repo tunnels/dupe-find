@@ -11,20 +11,16 @@ int main(int argc, char **argv)
 	initializeImages(&images[0], argv[1], &number_of_images);
 
 	for (int i = 0; i < number_of_images; i++) {
-		storeComponents(images[i]);
-		// printComponents(images[i]);
+		storeChannels(images[i]);
+		// printChannels(images[i]);
 	}
 
 	for (int i = 0; i < number_of_images; i++) {
-		int k = 0;
-
-		// todo: [performance] ignore duplicate sets; if (image_1, image_2), ignore (image_2, image_1)
-		for (int j = (i + 1) % number_of_images; (k + 1) < number_of_images; (j = (j + 1) % number_of_images, k++)) {
-			compareComponents(images[i], images[j]);
+		for (int j = i + 1; j < number_of_images; j++) {
+			compareChannels(images[i], images[j]);
 		}
 	}
 
-	printf("finished [main]\n");
 	return 0;
 }
 
@@ -40,14 +36,12 @@ bool verifyParams(int argc, char *source_directory)
 		return false;
 	}
 
-	printf("finished [verifyParams]\n");
 	return true;
 }
 
 void printImageDetails(Image *image)
 {
-	printf("\nlocation: %s\nw:%d, h:%d, c:%d\n", image->location, image->width, image->height, image->components_per_pixel);
-	printf("finished [printImageDetails]\n");
+	printf("\nlocation: %s\nw:%d, h:%d, c:%d\n", image->location, image->width, image->height, image->channels_per_pixel);
 }
 
 void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory, int *number_of_images)
@@ -75,8 +69,8 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 			strcat(image_path, directory_entry->d_name);
 			strncpy(new_image->location, image_path, FILENAME_MAX * 2);
 
-			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->components_per_pixel, 0);
-			new_image->components = calloc(1, sizeof(long) * new_image->components_per_pixel);
+			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->channels_per_pixel, 0);
+			new_image->channels = calloc(1, sizeof(long) * new_image->channels_per_pixel);
 			new_image->number_of_pixels = new_image->width * new_image->height;
 
 			if (*number_of_images < MAX_IMAGES_PER_DIR) {
@@ -84,7 +78,7 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 			}
 			else {
 				printf("[ERROR] too many images in directory\n");
-				return;
+				exit(-1);
 			}
 		}
 		closedir(directory_pointer);
@@ -92,42 +86,41 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 	else {
 		perror("ERROR");
 	}
-
-	printf("finished [initializeImages]\n");
 }
 
-void storeComponents(Image *image)
+void storeChannels(Image *image)
 {
-	for (int i = 0; i < (image->number_of_pixels * image->components_per_pixel); i++) {
-		// reset this value for each component array entry
-		if (i < image->components_per_pixel) {
-			image->components[i] = 0;
+	for (int i = 0; i < (image->number_of_pixels * image->channels_per_pixel); i++) {
+		// reset this value for each channel array entry
+		if (i < image->channels_per_pixel) {
+			image->channels[i] = 0;
 		}
 
-		// there are only components_per_pixel_base elements in the rgb arrays
-		image->components[i % image->components_per_pixel] += image->image_data[i];
+		// there are only channels_per_pixel_base elements in the rgb arrays
+		image->channels[i % image->channels_per_pixel] += image->image_data[i];
 	}
-
-	printf("finished [storeComponents]\n");
 }
 
-void printComponents(Image *image)
+void printChannels(Image *image)
 {
-	for (int i = 0; i < image->components_per_pixel; i++)
-	printf("component %d: %ld\n", i, image->components[i]);
-	printf("finished [printComponents]\n");
+	for (int i = 0; i < image->channels_per_pixel; i++) {
+		printf("channel %d: %ld\n", i, image->channels[i]);
+	}
+	printf("\n");
 }
 
-void compareComponents(Image *base, Image *comparison)
+void compareChannels(Image *base, Image *comparison)
 {
-	double base_denominator = base->width * base->height * base->components_per_pixel * COMPONENT_MAX_VALUE;
-	double comparison_denominator = comparison->width * comparison->height * comparison->components_per_pixel * COMPONENT_MAX_VALUE;
+	int channels_to_consider = (base->channels_per_pixel <= comparison->channels_per_pixel) ? base->channels_per_pixel : comparison->channels_per_pixel;
+
+	double base_denominator = base->width * base->height * channels_to_consider * CHANNEL_MAX_VALUE;
+	double comparison_denominator = comparison->width * comparison->height * channels_to_consider * CHANNEL_MAX_VALUE;
 	double total_difference = 0;
 
-	printf("\ncomparing base: '%s' and comparison: '%s'\n", base->location, comparison->location);
-	for (int i = 0; i < comparison->components_per_pixel; i++) {
-		double base_calculated_value = (base->components[i] / base_denominator) * 100;
-		double comparison_calculated_value = (comparison->components[i] / comparison_denominator) * 100;
+	
+	for (int i = 0; i < channels_to_consider; i++) {
+		double base_calculated_value = (base->channels[i] / base_denominator) * 100;
+		double comparison_calculated_value = (comparison->channels[i] / comparison_denominator) * 100;
 
 		// printf("%d: ", i);
 		// printf("[base] = %f ; ", base_calculated_value);
@@ -135,7 +128,24 @@ void compareComponents(Image *base, Image *comparison)
 		total_difference += fabs(comparison_calculated_value - base_calculated_value);
 		// printf("[difference] = %f\n", total_difference);
 	}
-	printf("[Total Diffirence] = %f\n", total_difference);
-	// printf("comparing %s and %s\n", base->location, comparison->location);
-	printf("finished [compareComponents]\n");
+	analyzeChannelDifference(total_difference, base->location, comparison->location);
+}
+
+void analyzeChannelDifference(double total_difference, char *base_location, char *comparison_location)
+{
+	if (total_difference <= 0.1) {
+		printf("\n%s and %s\n", base_location, comparison_location);
+		printf("\t[VERY LIKELY] duplicates; difference = %f\n", total_difference);
+	}
+	else if (total_difference <= 0.7) {
+		printf("\n%s and %s\n", base_location, comparison_location);
+		printf("\t[PROBABLY] duplicates; difference = %f\n", total_difference);
+	}
+	else if (total_difference <= 1.5) {
+		printf("\n%s and %s\n", base_location, comparison_location);
+		printf("\t[MAYBE] duplicates; difference = %f\n", total_difference);
+	}	
+	else {
+		// printf("[NOT] duplicates; difference = %f\n", total_difference);
+	}
 }

@@ -6,7 +6,7 @@ macos: clean all
 	./df tests/images/
 
 windows: clean all 
-	./df.exe tests/images/
+	./df.exe tests/samples/
 
 clean:
 	rm df -f

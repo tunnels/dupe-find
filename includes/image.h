@@ -4,7 +4,7 @@ typedef struct image_struct_t {
 	int width;
 	int height;
 	int number_of_pixels;
-	int components_per_pixel;
-	long *components;
+	int channels_per_pixel;
+	long *channels;
 	struct image_struct_t *next;
 } Image;
