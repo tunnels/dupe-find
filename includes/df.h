@@ -7,9 +7,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+
 // each channel in each pixel will have a value from 1 to CHANNEL_MAX_VALUE
-static const double CHANNEL_MAX_VALUE = 256.0;
-static const int MAX_IMAGES_PER_DIR = 60;
+#define CHANNEL_MAX_VALUE 256.0
+#define MAX_IMAGES_PER_DIR 2000
 
 bool verifyParams(int argc, char *source_directory);
 void printImageDetails(Image *image);

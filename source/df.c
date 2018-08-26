@@ -13,6 +13,7 @@ int main(int argc, char **argv)
 	for (int i = 0; i < number_of_images; i++) {
 		storeChannels(images[i]);
 		// printChannels(images[i]);
+		// printImageDetails(images[i]);
 	}
 
 	for (int i = 0; i < number_of_images; i++) {
@@ -70,7 +71,7 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 			strncpy(new_image->location, image_path, FILENAME_MAX * 2);
 
 			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->channels_per_pixel, 0);
-			new_image->channels = calloc(1, sizeof(long) * new_image->channels_per_pixel);
+			new_image->channels = calloc(sizeof(long long), new_image->channels_per_pixel);
 			new_image->number_of_pixels = new_image->width * new_image->height;
 
 			if (*number_of_images < MAX_IMAGES_PER_DIR) {
@@ -104,7 +105,7 @@ void storeChannels(Image *image)
 void printChannels(Image *image)
 {
 	for (int i = 0; i < image->channels_per_pixel; i++) {
-		printf("channel %d: %ld\n", i, image->channels[i]);
+		printf("channel %d: %lld\n", i, image->channels[i]);
 	}
 	printf("\n");
 }
@@ -115,18 +116,20 @@ void compareChannels(Image *base, Image *comparison)
 
 	double base_denominator = base->width * base->height * channels_to_consider * CHANNEL_MAX_VALUE;
 	double comparison_denominator = comparison->width * comparison->height * channels_to_consider * CHANNEL_MAX_VALUE;
-	double total_difference = 0;
 
+	double base_calculated_value = 0;
+	double comparison_calculated_value = 0;
+	double total_difference = 0;
 	
 	for (int i = 0; i < channels_to_consider; i++) {
-		double base_calculated_value = (base->channels[i] / base_denominator) * 100;
-		double comparison_calculated_value = (comparison->channels[i] / comparison_denominator) * 100;
+		base_calculated_value = (base->channels[i] / base_denominator) * 100;
+		comparison_calculated_value = (comparison->channels[i] / comparison_denominator) * 100;
+		total_difference += fabs(comparison_calculated_value - base_calculated_value);
 
 		// printf("%d: ", i);
-		// printf("[base] = %f ; ", base_calculated_value);
-		// printf("[comparison] = %f ; ", comparison_calculated_value);
-		total_difference += fabs(comparison_calculated_value - base_calculated_value);
-		// printf("[difference] = %f\n", total_difference);
+		// printf("difference = %f (", total_difference);
+		// printf("base = %f, ", base_calculated_value);
+		// printf("comparison = %f)\n", comparison_calculated_value);
 	}
 	analyzeChannelDifference(total_difference, base->location, comparison->location);
 }
@@ -137,15 +140,16 @@ void analyzeChannelDifference(double total_difference, char *base_location, char
 		printf("\n%s and %s\n", base_location, comparison_location);
 		printf("\t[VERY LIKELY] duplicates; difference = %f\n", total_difference);
 	}
-	else if (total_difference <= 0.7) {
+	else if (total_difference <= 0.2) {
 		printf("\n%s and %s\n", base_location, comparison_location);
 		printf("\t[PROBABLY] duplicates; difference = %f\n", total_difference);
 	}
-	else if (total_difference <= 1.5) {
+	else if (total_difference <= 2) {
 		printf("\n%s and %s\n", base_location, comparison_location);
 		printf("\t[MAYBE] duplicates; difference = %f\n", total_difference);
 	}	
 	else {
-		// printf("[NOT] duplicates; difference = %f\n", total_difference);
+		// printf("\n%s and %s\n", base_location, comparison_location);
+		// printf("\t[NOT] duplicates; difference = %f\n", total_difference);
 	}
 }

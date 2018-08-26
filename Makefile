@@ -1,6 +1,6 @@
 all:
 	clear
-	gcc -std=gnu99 -Wall -Wpedantic -o df source/df.c
+	gcc -std=c99 -g -Wall -Wpedantic source/df.c -o df
 
 macos: clean all
 	./df tests/images/
@@ -9,4 +9,5 @@ windows: clean all
 	./df.exe tests/samples/
 
 clean:
-	rm df -f
+	touch df
+	rm -f df
