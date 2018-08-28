@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <dirent.h>
-// #include "image.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -19,7 +18,6 @@ typedef struct image_struct_t {
 	int number_of_pixels;
 	int channels_per_pixel;
 	long long *channels;
-	struct image_struct_t *next;
 } Image;
 
 

@@ -10,16 +10,17 @@ int main(int argc, char **argv)
 	Image *images[MAX_IMAGES_PER_DIR];
 	initializeImages(&images[0], argv[1], &number_of_images);
 
-	for (int i = 0; i < number_of_images; i++) {
-		storeChannels(images[i]);
-		// printChannels(images[i]);
-		// printImageDetails(images[i]);
-	}
+	// for (int i = 0; i < number_of_images; i++) {
+	// 	storeChannels(images[i]);
+	// 	// printChannels(images[i]);
+	// 	// printImageDetails(images[i]);
+	// }
 
 	for (int i = 0; i < number_of_images; i++) {
 		for (int j = i + 1; j < number_of_images; j++) {
 			compareChannels(images[i], images[j]);
 		}
+		free(images[i]);
 	}
 
 	return 0;
@@ -73,6 +74,9 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->channels_per_pixel, 0);
 			new_image->channels = calloc(sizeof(long long), new_image->channels_per_pixel);
 			new_image->number_of_pixels = new_image->width * new_image->height;
+
+			storeChannels(new_image);
+			free(new_image->image_data);
 
 			if (*number_of_images < MAX_IMAGES_PER_DIR) {
 				images[(*number_of_images)++] = new_image;
@@ -136,15 +140,19 @@ void compareChannels(Image *base, Image *comparison)
 
 void analyzeChannelDifference(double total_difference, char *base_location, char *comparison_location)
 {
-	if (total_difference <= 0.1) {
+	if (total_difference == 0) {
+		// printf("\n%s and %s\n", base_location, comparison_location);
+		// printf("\t[PERFECT DUPLICATES]\n");
+	}
+	else if (total_difference <= 0.01) {
 		printf("\n%s and %s\n", base_location, comparison_location);
 		printf("\t[VERY LIKELY] duplicates; difference = %f\n", total_difference);
 	}
-	else if (total_difference <= 0.2) {
+	else if (total_difference <= 0.1) {
 		printf("\n%s and %s\n", base_location, comparison_location);
 		printf("\t[PROBABLY] duplicates; difference = %f\n", total_difference);
 	}
-	else if (total_difference <= 2) {
+	else if (total_difference <= 0.2) {
 		printf("\n%s and %s\n", base_location, comparison_location);
 		printf("\t[MAYBE] duplicates; difference = %f\n", total_difference);
 	}	
