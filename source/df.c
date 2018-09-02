@@ -6,18 +6,13 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	int number_of_images;
+	unsigned number_of_images;
 	Image *images[MAX_IMAGES_PER_DIR];
 	initializeImages(&images[0], argv[1], &number_of_images);
 
-	// for (int i = 0; i < number_of_images; i++) {
-	// 	storeChannels(images[i]);
-	// 	// printChannels(images[i]);
-	// 	// printImageDetails(images[i]);
-	// }
 
-	for (int i = 0; i < number_of_images; i++) {
-		for (int j = i + 1; j < number_of_images; j++) {
+	for (unsigned i = 0; i < number_of_images; i++) {
+		for (unsigned j = i + 1; j < number_of_images; j++) {
 			compareChannels(images[i], images[j]);
 		}
 		free(images[i]);
@@ -46,7 +41,7 @@ void printImageDetails(Image *image)
 	printf("\nlocation: %s\nw:%d, h:%d, c:%d\n", image->location, image->width, image->height, image->channels_per_pixel);
 }
 
-void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory, int *number_of_images)
+void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory, unsigned *number_of_images)
 {
 	Image *new_image = NULL;
 
@@ -60,6 +55,12 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 		while ((directory_entry = readdir(directory_pointer))) {
 			// skip hidden files
 			if (!strncmp(directory_entry->d_name, ".", 1)) {
+				continue;
+			}
+
+			bool isAnImage = isImage(directory_entry->d_name);
+
+			if (!isAnImage) {
 				continue;
 			}
 
@@ -95,7 +96,7 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 
 void storeChannels(Image *image)
 {
-	for (int i = 0; i < (image->number_of_pixels * image->channels_per_pixel); i++) {
+	for (unsigned i = 0; i < (image->number_of_pixels * image->channels_per_pixel); i++) {
 		// reset this value for each channel array entry
 		if (i < image->channels_per_pixel) {
 			image->channels[i] = 0;
@@ -108,7 +109,7 @@ void storeChannels(Image *image)
 
 void printChannels(Image *image)
 {
-	for (int i = 0; i < image->channels_per_pixel; i++) {
+	for (unsigned i = 0; i < image->channels_per_pixel; i++) {
 		printf("channel %d: %lld\n", i, image->channels[i]);
 	}
 	printf("\n");
@@ -116,7 +117,7 @@ void printChannels(Image *image)
 
 void compareChannels(Image *base, Image *comparison)
 {
-	int channels_to_consider = (base->channels_per_pixel <= comparison->channels_per_pixel) ? base->channels_per_pixel : comparison->channels_per_pixel;
+	unsigned channels_to_consider = (base->channels_per_pixel <= comparison->channels_per_pixel) ? base->channels_per_pixel : comparison->channels_per_pixel;
 
 	double base_denominator = base->width * base->height * channels_to_consider * CHANNEL_MAX_VALUE;
 	double comparison_denominator = comparison->width * comparison->height * channels_to_consider * CHANNEL_MAX_VALUE;
@@ -125,7 +126,7 @@ void compareChannels(Image *base, Image *comparison)
 	double comparison_calculated_value = 0;
 	double total_difference = 0;
 	
-	for (int i = 0; i < channels_to_consider; i++) {
+	for (unsigned i = 0; i < channels_to_consider; i++) {
 		base_calculated_value = (base->channels[i] / base_denominator) * 100;
 		comparison_calculated_value = (comparison->channels[i] / comparison_denominator) * 100;
 		total_difference += fabs(comparison_calculated_value - base_calculated_value);
@@ -141,8 +142,8 @@ void compareChannels(Image *base, Image *comparison)
 void analyzeChannelDifference(double total_difference, char *base_location, char *comparison_location)
 {
 	if (total_difference == 0) {
-		// printf("\n%s and %s\n", base_location, comparison_location);
-		// printf("\t[PERFECT DUPLICATES]\n");
+		printf("\n%s and %s\n", base_location, comparison_location);
+		printf("\t[PERFECT DUPLICATES]\n");
 	}
 	else if (total_difference <= 0.01) {
 		printf("\n%s and %s\n", base_location, comparison_location);
@@ -160,4 +161,26 @@ void analyzeChannelDifference(double total_difference, char *base_location, char
 		// printf("\n%s and %s\n", base_location, comparison_location);
 		// printf("\t[NOT] duplicates; difference = %f\n", total_difference);
 	}
+}
+
+bool isImage(char *item_name)
+{
+	const unsigned minimum_filename_length = 5;
+	const unsigned filename_length = strlen(item_name);
+
+	// supporting just png and jpg/jpeg
+	if (filename_length >= minimum_filename_length) {
+		if (strncmp(&item_name[filename_length - 4], ".png", 4) == 0) {
+			return true;
+		}
+		else if (strncmp(&item_name[filename_length - 4], ".jpg", 4) == 0) {
+			return true;
+		}
+		else if (filename_length > minimum_filename_length && strncmp(&item_name[filename_length - 5], ".jpeg", 5) == 0) {
+			return true;
+		}
+
+	}
+
+	return false;
 }

@@ -3,3 +3,4 @@ images/
 df
 tests/
 todo.txt
+*.dSYM

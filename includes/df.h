@@ -23,8 +23,9 @@ typedef struct image_struct_t {
 
 bool verifyParams(int argc, char *source_directory);
 void printImageDetails(Image *image);
-void initializeImages(Image *images[], char *source_directory, int *number_of_images);
+void initializeImages(Image *images[], char *source_directory, unsigned *number_of_images);
 void storeChannels(Image *image);
 void printChannels(Image *image);
 void compareChannels(Image *base, Image *comparison);
 void analyzeChannelDifference(double total_difference, char *base_location, char *comparison_location);
+bool isImage(char *item_name);
