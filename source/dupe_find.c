@@ -1,4 +1,5 @@
-#include "../includes/df.h"
+#include "../includes/dupe_find.h"
+#include "../includes/integrity.h"
 
 int main(int argc, char **argv)
 {
@@ -19,21 +20,6 @@ int main(int argc, char **argv)
 	}
 
 	return 0;
-}
-
-bool verifyParams(int argc, char *source_directory)
-{
-	if (argc != 2) {
-		printf("please follow the following format\ndf [source_directory]\n");
-		return false;
-	}
-
-	if (strlen(source_directory) >= FILENAME_MAX) {
-		printf("[error] directory name is too long\n");
-		return false;
-	}
-
-	return true;
 }
 
 void printImageDetails(Image *image)
@@ -65,10 +51,11 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 			}
 
 			new_image = (Image *) malloc(sizeof(*new_image));
+			char *formatted_source_directory = formatDirectoryName(source_directory);
 
-			// image_path = directory_name + current_filename
+			// image_path is directory_name + current_filename
 			memset(image_path, 0, FILENAME_MAX * 2);
-			strncpy(image_path, source_directory, strlen(source_directory));
+			strncpy(image_path, formatted_source_directory, strlen(formatted_source_directory));
 			strcat(image_path, directory_entry->d_name);
 			strncpy(new_image->location, image_path, FILENAME_MAX * 2);
 
@@ -125,7 +112,7 @@ void compareChannels(Image *base, Image *comparison)
 	double base_calculated_value = 0;
 	double comparison_calculated_value = 0;
 	double total_difference = 0;
-	
+
 	for (unsigned i = 0; i < channels_to_consider; i++) {
 		base_calculated_value = (base->channels[i] / base_denominator) * 100;
 		comparison_calculated_value = (comparison->channels[i] / comparison_denominator) * 100;
@@ -142,8 +129,8 @@ void compareChannels(Image *base, Image *comparison)
 void analyzeChannelDifference(double total_difference, char *base_location, char *comparison_location)
 {
 	if (total_difference == 0) {
-		printf("\n%s and %s\n", base_location, comparison_location);
-		printf("\t[PERFECT DUPLICATES]\n");
+		// printf("\n%s and %s\n", base_location, comparison_location);
+		// printf("\t[PERFECT DUPLICATES]\n");
 	}
 	else if (total_difference <= 0.01) {
 		printf("\n%s and %s\n", base_location, comparison_location);
@@ -161,26 +148,4 @@ void analyzeChannelDifference(double total_difference, char *base_location, char
 		// printf("\n%s and %s\n", base_location, comparison_location);
 		// printf("\t[NOT] duplicates; difference = %f\n", total_difference);
 	}
-}
-
-bool isImage(char *item_name)
-{
-	const unsigned minimum_filename_length = 5;
-	const unsigned filename_length = strlen(item_name);
-
-	// supporting just png and jpg/jpeg
-	if (filename_length >= minimum_filename_length) {
-		if (strncmp(&item_name[filename_length - 4], ".png", 4) == 0) {
-			return true;
-		}
-		else if (strncmp(&item_name[filename_length - 4], ".jpg", 4) == 0) {
-			return true;
-		}
-		else if (filename_length > minimum_filename_length && strncmp(&item_name[filename_length - 5], ".jpeg", 5) == 0) {
-			return true;
-		}
-
-	}
-
-	return false;
 }

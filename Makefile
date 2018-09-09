@@ -1,9 +1,9 @@
 all:
 	clear
-	gcc -std=c99 -g -Wall -Wpedantic source/df.c -o df
+	gcc -std=c99 -g -Wall -Wpedantic source/dupe_find.c source/integrity.c -o df
 
 macos: clean all
-	./df tests/images/
+	./df ~/Pictures/screencaps
 
 windows: clean all 
 	./df.exe tests/samples/
