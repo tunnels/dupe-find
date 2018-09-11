@@ -24,6 +24,7 @@ typedef struct image_struct_t {
 
 void printImageDetails(Image *image);
 void initializeImages(Image *images[], char *source_directory, unsigned *number_of_images);
+Image *createImage(char *directory_name, char *item_name);
 void storeChannels(Image *image);
 void printChannels(Image *image);
 void compareChannels(Image *base, Image *comparison);

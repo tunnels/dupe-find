@@ -11,7 +11,6 @@ int main(int argc, char **argv)
 	Image *images[MAX_IMAGES_PER_DIR];
 	initializeImages(&images[0], argv[1], &number_of_images);
 
-
 	for (unsigned i = 0; i < number_of_images; i++) {
 		for (unsigned j = i + 1; j < number_of_images; j++) {
 			compareChannels(images[i], images[j]);
@@ -29,40 +28,33 @@ void printImageDetails(Image *image)
 
 void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory, unsigned *number_of_images)
 {
-	Image *new_image = NULL;
-
-	// loop through all the images
-	DIR *directory_pointer;
 	struct dirent *directory_entry;
-	char image_path[FILENAME_MAX * 2];
 
-	directory_pointer = opendir(source_directory);
+	DIR *directory_pointer = opendir(source_directory);
 	if (directory_pointer != NULL) {
-		while ((directory_entry = readdir(directory_pointer))) {
+		while ((directory_entry = readdir(directory_pointer))) {		
 			// skip hidden files
 			if (!strncmp(directory_entry->d_name, ".", 1)) {
 				continue;
 			}
 
 			bool isAnImage = isImage(directory_entry->d_name);
+			char *formatted_directory_name = formatDirectoryName(source_directory);
 
 			if (!isAnImage) {
+				if (directory_entry->d_type == DT_DIR) {
+					char *source_directory_subdir = malloc(strlen(formatted_directory_name) + strlen(directory_entry->d_name) + 1);
+					strcat(source_directory_subdir, formatted_directory_name);
+					strcat(source_directory_subdir, directory_entry->d_name);
+					initializeImages(images, source_directory_subdir, number_of_images);
+				}
+				else if (directory_entry->d_type == DT_LNK) {
+					// handle symlinks
+				}
 				continue;
 			}
 
-			new_image = (Image *) malloc(sizeof(*new_image));
-			char *formatted_source_directory = formatDirectoryName(source_directory);
-
-			// image_path is directory_name + current_filename
-			memset(image_path, 0, FILENAME_MAX * 2);
-			strncpy(image_path, formatted_source_directory, strlen(formatted_source_directory));
-			strcat(image_path, directory_entry->d_name);
-			strncpy(new_image->location, image_path, FILENAME_MAX * 2);
-
-			new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->channels_per_pixel, 0);
-			new_image->channels = calloc(sizeof(long long), new_image->channels_per_pixel);
-			new_image->number_of_pixels = new_image->width * new_image->height;
-
+			Image *new_image = createImage(formatted_directory_name, directory_entry->d_name);
 			storeChannels(new_image);
 			free(new_image->image_data);
 
@@ -79,6 +71,24 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 	else {
 		perror("ERROR");
 	}
+}
+
+Image *createImage(char *directory_name, char *item_name)
+{
+	Image *new_image = (Image *) malloc(sizeof(*new_image));
+	char image_path[FILENAME_MAX * 2];
+
+	// // image_path is directory_name + current_filename
+	memset(image_path, 0, FILENAME_MAX * 2);
+	strncpy(image_path, directory_name, strlen(directory_name));
+	strcat(image_path, item_name);
+	strncpy(new_image->location, image_path, FILENAME_MAX * 2);
+
+	new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->channels_per_pixel, 0);
+	new_image->channels = calloc(sizeof(long long), new_image->channels_per_pixel);
+	new_image->number_of_pixels = new_image->width * new_image->height;
+
+	return new_image;
 }
 
 void storeChannels(Image *image)
@@ -117,32 +127,28 @@ void compareChannels(Image *base, Image *comparison)
 		base_calculated_value = (base->channels[i] / base_denominator) * 100;
 		comparison_calculated_value = (comparison->channels[i] / comparison_denominator) * 100;
 		total_difference += fabs(comparison_calculated_value - base_calculated_value);
-
-		// printf("%d: ", i);
-		// printf("difference = %f (", total_difference);
-		// printf("base = %f, ", base_calculated_value);
-		// printf("comparison = %f)\n", comparison_calculated_value);
 	}
+
 	analyzeChannelDifference(total_difference, base->location, comparison->location);
 }
 
 void analyzeChannelDifference(double total_difference, char *base_location, char *comparison_location)
 {
 	if (total_difference == 0) {
-		// printf("\n%s and %s\n", base_location, comparison_location);
-		// printf("\t[PERFECT DUPLICATES]\n");
+		printf("\n%s and %s\n", base_location, comparison_location);
+		printf("\t[PERFECT DUPLICATES]\n");
 	}
 	else if (total_difference <= 0.01) {
 		printf("\n%s and %s\n", base_location, comparison_location);
 		printf("\t[VERY LIKELY] duplicates; difference = %f\n", total_difference);
 	}
 	else if (total_difference <= 0.1) {
-		printf("\n%s and %s\n", base_location, comparison_location);
-		printf("\t[PROBABLY] duplicates; difference = %f\n", total_difference);
+		// printf("\n%s and %s\n", base_location, comparison_location);
+		// printf("\t[PROBABLY] duplicates; difference = %f\n", total_difference);
 	}
 	else if (total_difference <= 0.2) {
-		printf("\n%s and %s\n", base_location, comparison_location);
-		printf("\t[MAYBE] duplicates; difference = %f\n", total_difference);
+		// printf("\n%s and %s\n", base_location, comparison_location);
+		// printf("\t[MAYBE] duplicates; difference = %f\n", total_difference);
 	}	
 	else {
 		// printf("\n%s and %s\n", base_location, comparison_location);

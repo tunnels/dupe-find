@@ -31,7 +31,6 @@ bool isImage(char *item_name)
 		else if (filename_length > minimum_filename_length && strncmp(&item_name[filename_length - 5], ".jpeg", 5) == 0) {
 			return true;
 		}
-
 	}
 
 	return false;
