@@ -3,13 +3,16 @@
 
 int main(int argc, char **argv)
 {
-	if (!verifyParams(argc, argv[1])) {
+	if (!verifyParams(argc, argv)) {
 		return -1;
 	}
 
 	unsigned number_of_images;
-	Image *images[MAX_IMAGES_PER_DIR];
-	initializeImages(&images[0], argv[1], &number_of_images);
+	Image *images[MAX_IMAGES_TO_PROCESS];
+
+	for (unsigned i = 1; i < argc; i++) {
+		initializeImages(&images[0], argv[i], &number_of_images);
+	}
 
 	for (unsigned i = 0; i < number_of_images; i++) {
 		for (unsigned j = i + 1; j < number_of_images; j++) {
@@ -26,7 +29,7 @@ void printImageDetails(Image *image)
 	printf("\nlocation: %s\nw:%d, h:%d, c:%d\n", image->location, image->width, image->height, image->channels_per_pixel);
 }
 
-void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory, unsigned *number_of_images)
+void initializeImages(Image *images[MAX_IMAGES_TO_PROCESS], char *source_directory, unsigned *number_of_images)
 {
 	struct dirent *directory_entry;
 
@@ -58,7 +61,7 @@ void initializeImages(Image *images[MAX_IMAGES_PER_DIR], char *source_directory,
 			storeChannels(new_image);
 			free(new_image->image_data);
 
-			if (*number_of_images < MAX_IMAGES_PER_DIR) {
+			if (*number_of_images < MAX_IMAGES_TO_PROCESS) {
 				images[(*number_of_images)++] = new_image;
 			}
 			else {

@@ -9,7 +9,7 @@
 
 // each channel in each pixel will have a value from 1 to CHANNEL_MAX_VALUE
 #define CHANNEL_MAX_VALUE 256.0
-#define MAX_IMAGES_PER_DIR 2000
+#define MAX_IMAGES_TO_PROCESS 2000
 
 typedef struct image_struct_t {
 	unsigned char *image_data;

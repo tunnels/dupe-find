@@ -1,15 +1,17 @@
 #include "../includes/integrity.h"
 
-bool verifyParams(int argc, char *source_directory)
+bool verifyParams(int argc, char **argv)
 {
-	if (argc != 2) {
-		printf("please follow the following format\ndf [source_directory]\n");
+	if (argc < 2) {
+		printf("usage: df [-flags] srcdir_1 [, srcdir_2, ...]\n");
 		return false;
 	}
 
-	if (strlen(source_directory) >= FILENAME_MAX) {
-		printf("[error] directory name is too long\n");
-		return false;
+	for (unsigned i = 1; i < argc; i++) {
+		if (strlen(argv[i]) >= (FILENAME_MAX/2)) {
+			printf("[error] directory name is too long\n");
+			return false;
+		}
 	}
 
 	return true;

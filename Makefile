@@ -3,8 +3,7 @@ all:
 	gcc -std=c99 -g -Wall -Wpedantic source/dupe_find.c source/integrity.c -o df
 
 macos: clean all
-	./df /Users/alex/Desktop/CYOAs
-	# ./df /Users/alex/Desktop/based
+	./df tests/test1 tests/test1/subtest1
 
 windows: clean all 
 	./df.exe tests/samples/
