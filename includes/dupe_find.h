@@ -16,7 +16,6 @@ typedef struct image_struct_t {
 	char location[FILENAME_MAX * 2];
 	int width;
 	int height;
-	int number_of_pixels;
 	int channels_per_pixel;
 	long long *channels;
 } Image;

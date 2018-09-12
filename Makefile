@@ -1,9 +1,9 @@
 all:
-	clear
+	clear && printf '\e[3J'
 	gcc -std=c99 -g -Wall -Wpedantic source/dupe_find.c source/integrity.c -o df
 
 macos: clean all
-	./df tests/test1 tests/test1/subtest1
+	./df ~/Desktop/rec
 
 windows: clean all 
 	./df.exe tests/samples/

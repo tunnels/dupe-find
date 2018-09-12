@@ -18,6 +18,7 @@ int main(int argc, char **argv)
 		for (unsigned j = i + 1; j < number_of_images; j++) {
 			compareChannels(images[i], images[j]);
 		}
+
 		free(images[i]);
 	}
 
@@ -35,7 +36,7 @@ void initializeImages(Image *images[MAX_IMAGES_TO_PROCESS], char *source_directo
 
 	DIR *directory_pointer = opendir(source_directory);
 	if (directory_pointer != NULL) {
-		while ((directory_entry = readdir(directory_pointer))) {		
+		while ((directory_entry = readdir(directory_pointer))) {
 			// skip hidden files
 			if (!strncmp(directory_entry->d_name, ".", 1)) {
 				continue;
@@ -68,7 +69,7 @@ void initializeImages(Image *images[MAX_IMAGES_TO_PROCESS], char *source_directo
 				printf("[ERROR] too many images in directory\n");
 				exit(-1);
 			}
-		}
+		}	
 		closedir(directory_pointer);
 	}
 	else {
@@ -89,14 +90,14 @@ Image *createImage(char *directory_name, char *item_name)
 
 	new_image->image_data = stbi_load(new_image->location, &new_image->width, &new_image->height, &new_image->channels_per_pixel, 0);
 	new_image->channels = calloc(sizeof(long long), new_image->channels_per_pixel);
-	new_image->number_of_pixels = new_image->width * new_image->height;
 
 	return new_image;
 }
 
 void storeChannels(Image *image)
 {
-	for (unsigned i = 0; i < (image->number_of_pixels * image->channels_per_pixel); i++) {
+	unsigned number_of_pixels = image->width * image->height;
+	for (unsigned i = 0; i < (number_of_pixels * image->channels_per_pixel); i++) {
 		// reset this value for each channel array entry
 		if (i < image->channels_per_pixel) {
 			image->channels[i] = 0;
@@ -112,6 +113,7 @@ void printChannels(Image *image)
 	for (unsigned i = 0; i < image->channels_per_pixel; i++) {
 		printf("channel %d: %lld\n", i, image->channels[i]);
 	}
+
 	printf("\n");
 }
 
@@ -138,23 +140,22 @@ void compareChannels(Image *base, Image *comparison)
 void analyzeChannelDifference(double total_difference, char *base_location, char *comparison_location)
 {
 	if (total_difference == 0) {
-		printf("\n%s and %s\n", base_location, comparison_location);
-		printf("\t[PERFECT DUPLICATES]\n");
+		printf("[Perfect Duplicates]\n");
 	}
 	else if (total_difference <= 0.01) {
-		printf("\n%s and %s\n", base_location, comparison_location);
-		printf("\t[VERY LIKELY] duplicates; difference = %f\n", total_difference);
+		printf("[Very Likely | %f]\n", total_difference);
 	}
 	else if (total_difference <= 0.1) {
-		// printf("\n%s and %s\n", base_location, comparison_location);
-		// printf("\t[PROBABLY] duplicates; difference = %f\n", total_difference);
+		printf("[Probably | %f]\n", total_difference);
 	}
 	else if (total_difference <= 0.2) {
-		// printf("\n%s and %s\n", base_location, comparison_location);
-		// printf("\t[MAYBE] duplicates; difference = %f\n", total_difference);
+		printf("[Maybe | %f]\n", total_difference);
 	}	
 	else {
-		// printf("\n%s and %s\n", base_location, comparison_location);
-		// printf("\t[NOT] duplicates; difference = %f\n", total_difference);
+		// printf("[Nope | %f]\n", total_difference);
+		return;
 	}
+
+	printf("%s\n", base_location);
+	printf("%s\n\n", comparison_location);
 }
